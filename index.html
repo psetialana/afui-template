@@ -27,14 +27,16 @@
 <!-- end of cordova lib -->
 
 <!-- other lib -->
-    <script type='application/javascript' src='lib/fastclick.js'></script>
-    <script type='application/javascript'>
+    <script type='text/javascript' src='lib/fastclick.js'></script>
+    <script type='text/javascript'>
         window.addEventListener('load', function() {
             new FastClick(document.body);
         }, false);
     </script>
 
     <script type="text/javascript" src='lib/jquery.serialize-object.min.js'></script>
+
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=true"></script>
 <!-- end of other lib -->
 
 <!-- App config -->
@@ -78,9 +80,17 @@
                 
         function startApp(){
             // clears all back button history
-            $.ui.clearHistory();  
+            $.ui.clearHistory();
             
             // your app code here
+        }
+
+        function disableSideMenu(){
+            $.ui.disableSideMenu();    
+        }
+
+        function enableSideMenu(){
+            $.ui.enableSideMenu();    
         }
     </script>   
 <!-- end of UI config & function -->
@@ -89,12 +99,16 @@
 <body> 
 <div id="afui" class="">
     
+    <div id="header">
+        <a id='menubadge' onclick='af.ui.toggleSideMenu()' class='menuButton'></a>
+    </div>
+
     <div id="content" style=""> 
         
     <!-- Views -->
         
         <!-- Welcome View -->
-        <div class="panel" title="Welcome" id="page1" data-header="none" data-footer="none" selected="true">
+        <div class="panel" title="Welcome" id="page1" data-header="none" data-footer="none" selected="true" data-load="disableSideMenu" data-unload="enableSideMenu">
             <div style="text-align:center">
             <br>
             <br>
@@ -112,7 +126,7 @@
         </div>
         
         <!-- Login View -->
-        <div class="panel" title="Login" id="signin" data-footer="none">
+        <div class="panel" title="Login" id="signin" data-footer="none" data-load="disableSideMenu" data-unload="enableSideMenu">
             <form id="form-login">
                 <div style="text-align:center">
                 <br>
@@ -139,16 +153,22 @@
                          contentType: "application/json; charset=utf-8",
                          dataType: "json",
                          beforeSend: function() {
-
+                            $.ui.showMask();
                         }, complete: function() {
-
+                            $.ui.hideMask();
                         }, success: function (data, status, jqXHR) {
-                            alert(data['data']['username']);
+                            if (data['success']==true) {
+                                $.ui.loadContent("home", null, null, "fade");
+                            } else {
+                                alert('Maaf, Username atau password salah');
+                            }
                         }, error: function (jqXHR, status) {            
                             alert(status);
                         }
 
                     });*/
+
+                    $.ui.loadContent("home", null, null, "fade");
                 }
             </script>
             <!-- end of login script -->
@@ -156,7 +176,7 @@
         </div>
         
         <!-- Register View -->
-        <div class="panel" title="Register" id="signup" data-footer="none">
+        <div class="panel" title="Register" id="signup" data-nav="none" data-footer="none" data-load="disableSideMenu" data-unload="enableSideMenu">
             <div style="text-align:center">
             <br>
             <br>
@@ -164,8 +184,6 @@
             <br>
             <br>
             </div>
-            <input name="name" type="text" placeholder="Name" />
-            <input name="email" type="text" placeholder="Email" />
             <input name="username" type="text" placeholder="username" />
             <input name="password" type="password" placeholder="password" />
             <input name="password2" type="password" placeholder="confirm password" />
@@ -173,11 +191,136 @@
         </div>
         
         <!-- Main App View -->
-        <div class="panel" title="Start" id="main" data-load="startApp">
+        <div class="panel" title="Start" id="home" data-nav="nav-menu" data-load="startApp">
             <p>This is App page after user has signed in...</p>
         </div>
+
+        <div class="panel" title="Map" id="map" data-load="setupMap" data-nav="nav-menu">
+            <header>
+                <h1>Maps</h1>
+                <a id='menubadge' onclick='af.ui.toggleSideMenu()' class='menuButton'></a>
+                <a href="#" class="button icon target" onclick="getGeoLocation()"></a>
+            </header>
+            <div id="map"></div>
+            <script>
+                var map;
+                function setupMap(){
+                    var mapOptions = {
+                        center: new google.maps.LatLng(45.53, -122.67),
+                        zoom: 10,
+                        mapTypeControl: false,
+                        streetViewControl: false,
+                        navigationControl: true,
+                        scrollwheel: false,
+                        navigationControlOptions: {style: google.maps.NavigationControlStyle.SMALL},
+                        mapTypeId: google.maps.MapTypeId.ROADMAP
+                    };
+                    map = new google.maps.Map(document.getElementById("map"), mapOptions);
+                } 
+                        
+                function getGeoLocation(){
+                    var success = function(position){
+                        map.panTo(new google.maps.LatLng(position.coords.latitude, position.coords.longitude));
+                    }
+                    if(navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(success, null);
+                    }   
+                }              
+                    
+            </script>
+        </div>
+
+        <div class="panel" title="Gallery" id="gallery" data-nav="nav-menu" data-load="gallery">
+            <style>
+            .photo-img {text-align:center;padding:10px 0}
+            .photo-img img {width:100%;max-width:612px}
+            .photo-caption {text-align:center; font-size:14px;font-weight:bold}        
+                    
+            /* CSS responsive square grid */        
+            .grid-photo {margin:3px -7px;} 
+            .grid-photo:after {content:'';display:block;clear:both;}        
+            .grid-photo li {position: relative; display:block; float:left; width: 10%; padding-bottom: 10%;}
+            .grid-photo .grid-photo-box {position: absolute;left: 3px;right: 3px;top: 3px;bottom: 3px; background-color: rgba(128,128,128,0.2);} 
+            .grid-photo img {width:100%;height:100%}
+            @media only screen and (max-width : 1024px) {
+                .grid-photo li {width: 12.5%; padding-bottom: 12.5%;}        
+            }        
+            @media only screen and (max-width : 768px) {
+                .grid-photo li {width: 16.6%; padding-bottom: 16.6%;}        
+            }        
+            @media only screen and (max-width : 480px) {
+                .grid-photo li {width: 25%; padding-bottom: 25%;}        
+            }
+            @media only screen and (max-width : 320px) {
+                .grid-photo li {width: 33.3%; padding-bottom: 33.3%;}        
+            }     
+            </style>  
+
+            <header>
+                <h1>Gallery</h1>
+                <a id='menubadge' onclick='af.ui.toggleSideMenu()' class='menuButton'></a>
+                <a href="#" class="button icon refresh" style="float:right" onclick="refreshPhotos()"></a>
+            </header>
+            <div class="grid-photo">
+            <!--   <li><div class="grid-photo-box"><a href="#item1"><img src="" /></a></div></li> -->
+            </div>
+            <a id="more" class="button block" onclick="loadNext()">Load More</a>
+            <script>
+
+            function gallery() {
+                var url = "data/instagram-1.json";
+                getPhotos(url);
+            }
+            function getPhotos(url){
+                var grid_html = "";
+                $.getJSON(url, function(data){
+                    for(var i=0; i<data.data.length; i++){
+                        grid_html += '<li><div class="grid-photo-box"><a href="#'+data.data[i].id+'"><img src="'+data.data[i].images.thumbnail.url+'" /></a></div></li>';
+                        var caption = data.data[i].caption? data.data[i].caption.text || "" : "";
+                        
+                        /* Dynamically add panel */
+                        var panel_content = '<div class="photo-img"><img src="'+data.data[i].images.standard_resolution.url+'"></div><div class="photo-caption">'+caption+'</div>';
+                        $.ui.addContentDiv(data.data[i].id, panel_content, "PHOTO");
+
+                    }
+                    $(".grid-photo").append(grid_html);
+                });
+            }
+                    
+            function loadNext(){
+                next_url = "data/instagram-2.json";
+                getPhotos(next_url);
+                $("#more").hide();
+            }
+                    
+            function refreshPhotos(){
+                $(".grid-photo").html("");
+                $(".panel.photo").remove();
+                $("#more").show();
+                getPhotos("data/instagram-1.json");
+            }
+            </script>
+        </div>
+
         
     </div>
+
+    <div id="#navbar"></div>
+     
+    <nav id="nav-menu">
+        <ul class="list">
+            <li class="divider">Menu</li>
+            <li>
+                <a onclick="" href="#home">Home</a>
+            </li>
+            <li>
+                <a onclick="" href="#map">Map</a>
+            </li>
+            <li>
+                <a onclick="" href="#gallery">Gallery</a>
+            </li>
+        </ul>
+    </nav>
 
 </div>
 </body>
